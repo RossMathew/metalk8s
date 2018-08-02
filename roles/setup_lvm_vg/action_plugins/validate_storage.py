@@ -64,15 +64,12 @@ def is_device_present(device, ansible_devices):
 
     The device can be either a raw device or a partition but nothing else.
 
-    Params:
-        device (string): The name of the device
-            i.e: 'sdb' or 'sdb1'
-        ansible_devices (dict): The dictionary of devices gather by the 'setup'
-            ansible module
-
-    Returns:
-        bool: True if the device is in ansible_device.
-            False otherwise
+    :param str device: The name of the device
+        i.e: 'sdb' or 'sdb1'
+    :param dict ansible_devices: The dictionary of devices gather by the
+        'setup' ansible module
+    :returns: True if the device is in ansible_devices. False otherwise
+    :rtype: bool
     '''
 
     # if the device is a raw device, check its presence
@@ -87,17 +84,29 @@ def is_device_present(device, ansible_devices):
     return False
 
 
-def check_devices_presence(hostvars):
+def check_vg_has_right_device(hostvars):
+    '''Check that the current existing VG has still the right devices
+
+    :param dict hostvars: The dictionary 'hostvars' from 'setup' ansible module
+        for a specific host
+    :raises: AssertionError
+
+    Raise AssertionError if the LVM Volume Group already exists and the devices
+    specified in the configuration are not all already in the Volume Group
     '''
-    Check that the devices specified in metalk8S_lvm_drives_<vg name>
+
+
+
+
+def check_devices_presence(hostvars):
+    '''Check that the devices specified in metalk8S_lvm_drives_<vg name>
     exists on the server
 
-    Params:
-        hostvars (dict): The dictionary 'hostvars' from 'setup' ansible module
-            for a specific host
+    :param dict hostvars: The dictionary 'hostvars' from 'setup' ansible module
+        for a specific host
+    :raises: AssertionError
 
-    Raises:
-        AssertionError: if the device is not present on the host
+    Raise AssertionError if the device is not present on the host
     '''
 
     for lvm_vg in \
@@ -105,10 +114,18 @@ def check_devices_presence(hostvars):
             'metalk8s_lvm_all_vgs', {}).keys():
         mk8s_vg_drives_var = 'metalk8s_lvm_drives_' + lvm_vg
         for device in hostvars.get(mk8s_vg_drives_var):
-            device_name = device.split('/')[-1]
+            # Strip the '/dev/' string to keep only the last part
+
+            # TODO: Check how the devices are represented in a multipath setup
+            device_name = device.replace('/dev/', '')
             assert is_device_present(
                 device_name, hostvars['ansible_devices']), \
                 "The device {} is not present".format(device)
+
+            assert '/' not in device_name, \
+                "the character \"/\" is present in the devices. " \
+                "Please use the '/dev/x' form for now as it is the one " \
+                "used by ansible."
 
 
 class ActionModule(ActionBase):
@@ -132,7 +149,7 @@ class ActionModule(ActionBase):
         failed = False
 
         for (name, check) in collect_checks():
-            for host in task_vars['hostvars'].keys():
+            for host in task_vars.get('ansible_play_hosts', []):
                 try:
                     results = check(task_vars['hostvars'][host])
                     if not results:
