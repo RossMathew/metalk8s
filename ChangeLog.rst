@@ -7,6 +7,8 @@ Features added
 :ghpull:`222` - update Elasticsearch and `node_exporter` dashboards
 
 :ghpull:`225` - Figure out the "fail fast" option of ansible (:ghissue:`129`)
+:ghpull:`232` - Add more storage checks regarding the device presence and the
+partition existence on specificied drives (:ghissue:`231`)
 
 Bugs Fixed
 ----------
