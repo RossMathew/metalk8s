@@ -8,8 +8,10 @@
       repo: '{{ nginx_ingress_repo }}'
     namespace: '{{ nginx_ingress_namespace }}'
     binary: '{{ bin_dir }}/helm'
-    values:
-    - "{{ lookup('file', role_path ~ '/files/nginx_ingress_values.yml') }}"
+    values: >-
+      {{ [
+        lookup('file', role_path ~ '/files/nginx_ingress_values.yml')
+      ] + nginx_ingress_external_values }}
     state: latest
   register: nginx_helm_install
   run_once: True
